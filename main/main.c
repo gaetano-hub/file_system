@@ -13,12 +13,24 @@ int main(int argc, char const *argv[])
 
     if(memory == MAP_FAILED) return -1;
 
+    printf("memoria allocata\n");
+
     FileSystem *fs = initFileSystem(memory, FILESYSTEM_SIZE);
     
+    if(createFile(fs, "file.txt") == 0){
+        printf("creato file.txt\n");
+    }
+
+    if(eraseFile(fs, "file.txt") == 0){
+        printf("eliminato file.txt\n");
+    }
+
 
     if(munmap(memory, FILESYSTEM_SIZE) == -1){
         return -1;
     }
+
+    printf("memoria deallocata\n");
 
     return 0;
 }

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
+#include <ctype.h>
 #include "../include/file_system.h"
 
 #define FREE_BLOCK -1
@@ -73,4 +75,77 @@ FileSystem *initFileSystem(void* memory, size_t size){
     fs->currentDirIndex = 0; // setto la directory corrente con 0(root)
 
     return fs;
+}
+
+int isValidFilename(const char* filename){
+    int length = strlen(filename);
+    if(length == 0 || length > MAX_FILENAME_LENGTH){
+        return 0;
+    }
+
+    if(strcmp(filename, "..") == 0) return 0; // non si può chiamare ".."
+
+    //verifica dei caratteri usabili nel fileName
+    for(int i = 0; i < length; i++){
+        if(!isalnum(filename[i]) && filename[i] != '.' && filename[i] != '_' && filename[i] != '-'){
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+
+int createFile(FileSystem *fs, char *fileName){
+    if(!isValidFilename(fileName)){
+        errno = EINVAL;
+        return -1;
+    }
+    if(fs->entryCount >= fs->maxEntries){
+        errno = ENOSPC;
+        return -1;
+    }
+
+    //fileExists()
+    for (int i = 0; i < fs->entryCount; i++)
+    {
+        if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, fileName) == 0 && fs->entries[i].type == FILE_TYPE){
+            errno = EEXIST;
+            return -1; // il file esiste
+        }
+    }
+    
+    DirectoryEntry *file = &(fs->entries[fs->entryCount++]);
+    strncpy(file->name, fileName, MAX_FILENAME_LENGTH);
+    file->name[MAX_FILENAME_LENGTH - 1] = '\0';
+
+    file->type = FILE_TYPE;
+    file->startBlock = FREE_BLOCK;
+    file->size = 0;
+    file->parentIndex = fs->currentDirIndex;
+
+    return 0;
+}
+
+
+int eraseFile(FileSystem *fs, char *fileName){
+    int j = 0;
+    for (int i = 0; j < fs->entryCount && i < fs->maxEntries; i++)
+    {
+        if(fs->entries[i].type == FREE_TYPE)
+            continue;
+        
+        //cerco il file da eliminare
+        if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, fileName) == 0 && fs->entries[i].type == FILE_TYPE){
+            fs->entries[i].type = FREE_TYPE;
+            fs->entryCount--;
+
+            return 0;
+        }
+        
+    }
+
+    errno = ENOENT;
+    return -1;
+    
 }

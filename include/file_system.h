@@ -12,3 +12,7 @@ typedef struct DirectoryEntry DirectoryEntry;
 typedef struct FileSystem FileSystem;
 
 FileSystem *initFileSystem();
+
+int createFile();
+
+int eraseFile();
