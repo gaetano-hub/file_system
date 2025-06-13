@@ -10,9 +10,16 @@ enum{
 
 typedef struct DirectoryEntry DirectoryEntry;
 typedef struct FileSystem FileSystem;
+typedef struct FileHandle FileHandle;
 
-FileSystem *initFileSystem();
+FileSystem *initFileSystem(void* memory, size_t size);
 
-int createFile();
+int createFile(FileSystem *fs, char *fileName);
 
-int eraseFile();
+int eraseFile(FileSystem *fs, char *fileName);
+
+FileHandle *open(FileSystem *fs, char *fileName);
+
+void close(FileHandle *fh);
+
+int write(FileSystem *fs, FileHandle *fh, char* data, int dataLength);

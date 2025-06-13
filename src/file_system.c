@@ -36,6 +36,14 @@ struct FileSystem{
     int currentDirIndex;
 };
 
+struct FileHandle
+{
+    int fileIndex;
+    int currentBlock;
+    int currentPosition;
+};
+
+
 FileSystem *initFileSystem(void* memory, size_t size){
 
     if(size < sizeof(FileSystem) + sizeof(DirectoryEntry) + BLOCK_SIZE + sizeof(int)){
@@ -49,6 +57,7 @@ FileSystem *initFileSystem(void* memory, size_t size){
     //calcolo delle entries e dei blocchi
     fs->maxEntries = ((size - sizeof(FileSystem)) * PERCENTAGE_OF_ENTRIES / 100) / sizeof(DirectoryEntry);
     if(fs->maxEntries < 1) fs->maxEntries = 1;
+
     fs->TotalBlocks = (size - sizeof(FileSystem) - fs->maxEntries * sizeof(DirectoryEntry)) / (BLOCK_SIZE + sizeof(int));
 
     //alloco la FAT table, directory entries e data blocks
@@ -148,4 +157,147 @@ int eraseFile(FileSystem *fs, char *fileName){
     errno = ENOENT;
     return -1;
     
+}
+
+FileHandle *open(FileSystem *fs, char *fileName){
+
+    //alloco la memoria per il descrittore che mi servirà per scrivere/leggere un file
+    FileHandle *fh = malloc(sizeof(FileHandle));
+    if(fh == NULL){
+        return NULL;
+    }
+
+    fh->fileIndex = -1; //imposto un valore "non valido"
+
+    //cerco il file nella currentDir
+    int j = 0;
+    for (int i = 0; j < fs->entryCount && i < fs->maxEntries; i++)
+    {
+        if(fs->entries[i].type == FREE_TYPE)
+            continue;
+        
+        //se trovo il file allora inizializzo *fh
+        if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, fileName) == 0 && fs->entries[i].type == FILE_TYPE){
+
+            fh->fileIndex = i;
+            fh->currentBlock = fs->entries[i].startBlock;
+            fh->currentPosition = 0;
+            fs->entries[i].creationTimeStamp = time(NULL);
+            fs->entries[i].lastAccessTimeStamp = fs->entries[i].creationTimeStamp;
+
+            return fh; 
+
+        }
+
+        j++;
+    }
+
+    //non ho trovato il file quindi faccio la free()
+    free(fh);
+    errno = ENOENT;
+    return NULL;
+    
+
+}
+
+void close(FileHandle *fh){
+    free(fh);
+}
+
+int write(FileSystem *fs, FileHandle *fh, char* data, int dataLength){
+
+    int bytesWritten = 0;
+
+    //inizializzo il puntatore al file così da poterne modificare le caratteristiche
+    DirectoryEntry *file = &fs->entries[fh->fileIndex];
+    //ultimo accesso al file
+    file->lastAccessTimeStamp = time(NULL);
+
+    //creo un ciclo che si conclude solo quando si è finito di scrivere
+    while (bytesWritten < dataLength){
+        //se il blocco corrente è vuoto allora ne alloco uno nuovo
+        if(fh->currentBlock == FREE_BLOCK){
+
+            int freeBlock = -1;
+
+            //cerco un blocco vuoto
+            for(int i = 0; i < fs->TotalBlocks; i++){
+                if(fs->table[i] == FREE_BLOCK){
+                    freeBlock = i;
+
+                    //imposto temporaneamente l'i-esimo blocco come fine della catena
+                    fs->table[i] = END_OF_CHAIN;
+                    
+                    //se il file è stato appena creato allora ha come startBlock un free_block e gli imposto l'inizio
+                    if(file->startBlock == FREE_BLOCK){
+                        file->startBlock = i;
+                    }else{
+
+                        //altrimenti se il file ha già dei blocchi allora devo trovare il suo ultimo
+                        int lastBlock = file->startBlock;
+                        //ciclo finché non trovo l'ultimo blocco
+                        while(fs->table[lastBlock] != END_OF_CHAIN){
+                            lastBlock = fs->table[lastBlock];
+                        }
+                        //collego il nuovo blocco alla fine della catena
+                        fs->table[lastBlock] = i;
+                    }
+
+                    //ho trovato un blocco libero e lo assegno al corrente e quindi esco dal ciclo
+                    fh->currentBlock = i;
+
+                    break;
+
+
+                }
+            }
+
+            //spazio esaurito
+            if(freeBlock == -1){
+                //errore non c'è un freeBlock
+                errno = ENOSPC;
+
+                return -1;
+            }
+        }
+
+        
+        //calcolo l'offset del blocco e poi vedo quanto spazio c'è rimasto
+        int blockOffset = fh->currentPosition % BLOCK_SIZE;
+        int bytesToWrite = BLOCK_SIZE - blockOffset;
+
+        
+        //se c'è lo spazio per scrivere i nuovi byte allora imposto il numero di byte da scrivere
+        if(bytesToWrite > dataLength - bytesWritten){
+            
+            bytesToWrite = dataLength - bytesWritten;
+
+        }
+
+        //svolgo la copia dei byte a partire dal blocco corrente(selezionato in precedenza)
+        memcpy(fs->data[fh->currentBlock] + blockOffset, data + bytesWritten, bytesToWrite);
+
+        //aggiorno la posizione
+        fh->currentPosition += bytesToWrite;
+        bytesWritten += bytesToWrite;
+
+        //se si finisce lo spazio nel blocco corrente allora si passa al prossimo
+        if (fh->currentPosition % BLOCK_SIZE == 0)
+        {
+            int nextBlock = fs->table[fh->currentBlock];
+            if(nextBlock == END_OF_CHAIN){
+                //significa che al prossimo ciclo si allocherà un nuovo blocco
+                nextBlock = FREE_BLOCK;
+            }
+            fh->currentBlock = nextBlock;
+        }
+        
+
+
+    }
+    
+    //aggiorno la dimensione del file e ritorno i byte scritti
+    file->size += bytesWritten;
+
+    return bytesWritten;
 }

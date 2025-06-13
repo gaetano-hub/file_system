@@ -11,15 +11,37 @@ int main(int argc, char const *argv[])
 {
     void *memory = mmap(NULL, FILESYSTEM_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    if(memory == MAP_FAILED) return -1;
+    if(memory == MAP_FAILED){
+        perror("mmap failed"); 
+        return -1;
+    }
 
     printf("memoria allocata\n");
 
     FileSystem *fs = initFileSystem(memory, FILESYSTEM_SIZE);
+
+    if(!fs){
+        perror("init failed");
+        return -1;
+    }
     
     if(createFile(fs, "file.txt") == 0){
         printf("creato file.txt\n");
     }
+
+    FileHandle *fh = open(fs, "file.txt");
+    if(!fh){ 
+        printf("errore open()\n");
+        return -1;
+    }
+
+    if(write(fs, fh, "file", 4) == 4){
+        printf("scrittura avvenuta\n");
+    }else{
+        printf("errore\n");
+    }
+
+    close(fh);
 
     if(eraseFile(fs, "file.txt") == 0){
         printf("eliminato file.txt\n");
