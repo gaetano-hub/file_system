@@ -301,3 +301,64 @@ int write(FileSystem *fs, FileHandle *fh, char* data, int dataLength){
 
     return bytesWritten;
 }
+
+char *read(FileSystem *fs, FileHandle *fh, int maxToBeRead){
+
+    DirectoryEntry *file = &fs->entries[fh->fileIndex];
+    file->lastAccessTimeStamp = time(NULL);
+
+    //alloco il "contenitore" per i bytes letti
+    char *buffer = (char*)malloc(maxToBeRead + 1);
+    int bytesRead = 0;
+
+    //calcolo i maxbytes che posso leggere
+    int maxReadable = file->size - fh->currentPosition;
+    
+    //se si è alla fine del file oppure si è oltre allora ritorno la stringa vuota
+    
+    if(maxReadable <= 0){
+        char *buffer = (char*)malloc(1);
+        buffer[0] = '\0';
+        
+        return buffer;
+    }
+
+    
+
+    //se i bytes da leggere sono di più di quelli disponibili allora limita la lettura
+    if( maxToBeRead >  maxReadable ){
+        maxToBeRead = maxReadable;
+    }
+
+    //continuo finché non leggo tutto oppure fin quando non trovo un freeBlock
+    while (bytesRead < maxToBeRead && fh->currentBlock != FREE_BLOCK){
+
+        //calcolo l' offset nel blocco e i byte che si possono leggere
+        int blockOffset = fh->currentPosition % BLOCK_SIZE;
+        int bytesToRead = BLOCK_SIZE - blockOffset;
+
+        //se devo leggere meno byte di quelli che stanno nel blocco allora adatto bytesToRead
+        if (bytesToRead > maxToBeRead - bytesRead){
+
+            bytesToRead = maxToBeRead - bytesRead;
+        }
+
+        //copio i bytes dal blocco nel buffer
+        memcpy(buffer + bytesRead, fs->data[fh->currentBlock] + blockOffset, bytesToRead);
+
+        //aggiorno le posizioni
+        fh->currentPosition += bytesToRead;
+        bytesRead += bytesToRead;
+
+        //se si finisce un blocco si passa al prossimo
+        if(fh->currentPosition % BLOCK_SIZE == 0){
+            fh->currentBlock = fs->table[fh->currentBlock];
+        }
+
+    }
+
+    // printf("%s debug", buffer);
+    buffer[bytesRead] = '\0';
+
+    return buffer;
+}

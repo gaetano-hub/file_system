@@ -43,6 +43,23 @@ int main(int argc, char const *argv[])
 
     close(fh);
 
+    FileHandle *fh1 = open(fs, "file.txt");
+
+    char *string = read(fs, fh, 5);
+
+    if(string != NULL){
+        printf("lettura avvenuta\n");
+        printf("stringa: %s\n", string);
+    }else{
+        printf("errore lettura\n");
+    }
+
+    free(string);
+    close(fh1);
+
+
+    
+
     if(eraseFile(fs, "file.txt") == 0){
         printf("eliminato file.txt\n");
     }

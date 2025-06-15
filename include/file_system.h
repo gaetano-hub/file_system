@@ -23,3 +23,5 @@ FileHandle *open(FileSystem *fs, char *fileName);
 void close(FileHandle *fh);
 
 int write(FileSystem *fs, FileHandle *fh, char* data, int dataLength);
+
+char *read(FileSystem *fs, FileHandle *fh, int maxToRead);
