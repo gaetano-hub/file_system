@@ -45,6 +45,15 @@ int main(int argc, char const *argv[])
 
     FileHandle *fh1 = open(fs, "file.txt");
 
+
+    int pos = seek(fs, fh1, 2, SEEK_BEGIN);
+    if(pos == 0){
+        printf("seek ok\n");
+    }
+
+    
+
+    
     char *string = read(fs, fh, 5);
 
     if(string != NULL){

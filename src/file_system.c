@@ -362,3 +362,47 @@ char *read(FileSystem *fs, FileHandle *fh, int maxToBeRead){
 
     return buffer;
 }
+
+int seek(FileSystem *fs, FileHandle *fh, int offset, int whence){
+    int newPos;
+    
+    DirectoryEntry *file = &fs->entries[fh->fileIndex];
+    file->lastAccessTimeStamp = time(NULL);
+
+    if(file->type != FILE_TYPE){
+        //errore
+        //non è un file
+        return -1;
+    }
+
+    if(whence == SEEK_BEGIN){
+        newPos = offset;
+    }else if (whence == SEEK_CURRENT)
+    {
+        newPos = fh->currentPosition + offset;
+    }else if (whence == SEEK_ENDING)
+    {
+        newPos = file->size + offset;
+    }else{
+        //errore
+        return -1;
+    }
+
+    //controllo della posizione se è valida
+    if(newPos < 0 || newPos > file->size){
+        return -1;
+    }
+
+    //aggiorno la posizione
+    fh->currentPosition = newPos;
+    fh->currentBlock = file->startBlock;
+
+    //calcolo numero blocchi per arrivare alla newPosizione
+    int blocksToSeek = newPos / BLOCK_SIZE;
+    for (int i = 0; i < blocksToSeek; i++)
+	{
+		fh->currentBlock = fs->table[fh->currentBlock];
+	}
+    printf("Posizione attuale: %d\n", fh->currentPosition);
+	return 0;
+}
