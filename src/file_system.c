@@ -43,6 +43,22 @@ struct FileHandle
     int currentPosition;
 };
 
+//funzione per il debug
+void stampaFS(FileSystem *fs){
+    fs->entryCount = 10;
+	for (int i = 0; i < fs->entryCount; i++)
+	{	
+		
+		if(fs->entries[i].type != FREE_TYPE){
+			printf("STAMPA: %s %u\n", fs->entries[i].name, fs->entries[i].type);
+		}else{
+			printf("STAMPA FREE_TYPE: %s %u\n", fs->entries[i].name, fs->entries[i].type);
+		}
+		
+	}
+	
+}
+
 
 FileSystem *initFileSystem(void* memory, size_t size){
 
@@ -437,4 +453,83 @@ int createDir(FileSystem *fs, char *dirName){
     
     return 0;
     
+}
+
+int eraseDir(FileSystem *fs, char *dirName) {
+    //cerco la directory nella directory corrente
+    int j = 0;
+    for (int i = 0; j < fs->entryCount && i < fs->maxEntries; i++) {
+        if (fs->entries[i].type == FREE_TYPE)
+            continue;
+
+        // printf("debug %d == %d && %s == %s\n", fs->entries[i].parentIndex, fs->currentDirIndex, fs->entries[i].name, dirName);
+        if (fs->entries[i].parentIndex == fs->currentDirIndex &&
+            strcmp(fs->entries[i].name, dirName) == 0 &&
+            fs->entries[i].type == DIRECTORY_TYPE) {
+
+            int dirIndex = i;
+
+            //effettuo due volte il controllo perché con un solo ciclo qualche file/dir potrebbe sfuggire visto che si modifica fs->entries e fs->entryCount
+            for (int pass = 0; pass < 2; pass++) {
+                for (int k = 0; k < fs->maxEntries; k++) {
+                    if (fs->entries[k].type == FREE_TYPE)
+                        continue;
+
+                    if (fs->entries[k].parentIndex == dirIndex) {
+                        //c'è bisogno di cambiare fs->currentDirIndex perché sennò non è possibile eliminare(per es. visto che eraseFile l'ho strutturata che
+                        // che bisogna stare nel parentIndex per eliminare)
+                        int temp = fs->currentDirIndex;
+                        fs->currentDirIndex = dirIndex;
+
+                        //uso chiamate ricorsive
+                        if (fs->entries[k].type == DIRECTORY_TYPE) {
+                            // printf("ELIMINAZIONE DIRECTORY: %s %u\n", fs->entries[k].name, fs->entries[k].type);
+                            eraseDir(fs, fs->entries[k].name);
+                        } else if (fs->entries[k].type == FILE_TYPE) {
+                            // printf("ELIMINAZIONE FILE DENTRO: %s %u\n", fs->entries[k].name, fs->entries[k].type);
+                            eraseFile(fs, fs->entries[k].name);
+                        }
+
+                        fs->currentDirIndex = temp;
+                    }
+                }
+            }
+
+            //elimino
+            // printf("ELIMINAZIONE DIRECTORY: %s %u entryCount prima: %d\n", fs->entries[dirIndex].name, fs->entries[dirIndex].type, fs->entryCount);
+            fs->entries[dirIndex].type = FREE_TYPE;
+            fs->entryCount--;
+            printf("entryCount dopo: %d\n", fs->entryCount);
+
+            return 0;
+        }
+        j++;
+    }
+
+    return -1; //directory non trovata
+}
+
+int changeDir(FileSystem *fs, char *dirName){
+    //caso in cui torno indietro
+    if(strcmp(dirName,"..") == 0){
+        //nel caso si è già in root
+        if(fs->currentDirIndex == 0){
+            return 0;
+        }
+        fs->currentDirIndex = fs->entries[fs->currentDirIndex].parentIndex;
+        return 0;
+    }
+
+    for (int i = 0; i < fs->entryCount; i++)
+    {   
+        //cerco la directory nella directory corrente e sposto il currentDirIndex
+        if(strcmp(fs->entries[i].name, dirName) == 0 && fs->currentDirIndex == fs->entries[i].parentIndex && fs->entries[i].type == DIRECTORY_TYPE){
+            fs->currentDirIndex = i;
+            fs->entries[i].lastAccessTimeStamp = time(NULL);
+            return 0;
+        }
+    }
+    
+
+    return -1;
 }

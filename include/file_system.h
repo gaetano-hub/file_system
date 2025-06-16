@@ -12,6 +12,8 @@ typedef struct DirectoryEntry DirectoryEntry;
 typedef struct FileSystem FileSystem;
 typedef struct FileHandle FileHandle;
 
+void stampaFS(FileSystem *fs);
+
 FileSystem *initFileSystem(void* memory, size_t size);
 
 int createFile(FileSystem *fs, char *fileName);
@@ -29,3 +31,8 @@ char *read(FileSystem *fs, FileHandle *fh, int maxToRead);
 int seek(FileSystem *fs, FileHandle *fh, int offset, int whence);
 
 int createDir(FileSystem *fs, char *dirName);
+
+int eraseDir(FileSystem *fs, char *dirName);
+
+int changeDir(FileSystem *fs, char *dirName);
+
