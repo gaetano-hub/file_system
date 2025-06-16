@@ -96,6 +96,7 @@ FileSystem *initFileSystem(void* memory, size_t size){
     root->startBlock = FREE_BLOCK;
     root->size = 0;
     root->parentIndex = -1; //non ha parent
+    root->creationTimeStamp = time(NULL);
 
     fs->currentDirIndex = 0; // setto la directory corrente con 0(root)
 
@@ -123,11 +124,9 @@ int isValidFilename(const char* filename){
 
 int createFile(FileSystem *fs, char *fileName){
     if(!isValidFilename(fileName)){
-        errno = EINVAL;
         return -1;
     }
     if(fs->entryCount >= fs->maxEntries){
-        errno = ENOSPC;
         return -1;
     }
 
@@ -135,7 +134,6 @@ int createFile(FileSystem *fs, char *fileName){
     for (int i = 0; i < fs->entryCount; i++)
     {
         if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, fileName) == 0 && fs->entries[i].type == FILE_TYPE){
-            errno = EEXIST;
             return -1; // il file esiste
         }
     }
@@ -148,6 +146,8 @@ int createFile(FileSystem *fs, char *fileName){
     file->startBlock = FREE_BLOCK;
     file->size = 0;
     file->parentIndex = fs->currentDirIndex;
+    file->creationTimeStamp = time(NULL);
+    file->lastAccessTimeStamp = time(NULL);
 
     return 0;
 }
@@ -157,6 +157,7 @@ int eraseFile(FileSystem *fs, char *fileName){
     int j = 0;
     for (int i = 0; j < fs->entryCount && i < fs->maxEntries; i++)
     {
+        
         if(fs->entries[i].type == FREE_TYPE)
             continue;
         
@@ -164,13 +165,13 @@ int eraseFile(FileSystem *fs, char *fileName){
         if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, fileName) == 0 && fs->entries[i].type == FILE_TYPE){
             fs->entries[i].type = FREE_TYPE;
             fs->entryCount--;
-
+        
             return 0;
         }
-        
+        j++;
     }
 
-    errno = ENOENT;
+
     return -1;
     
 }
@@ -210,7 +211,6 @@ FileHandle *open(FileSystem *fs, char *fileName){
 
     //non ho trovato il file quindi faccio la free()
     free(fh);
-    errno = ENOENT;
     return NULL;
     
 
@@ -271,7 +271,6 @@ int write(FileSystem *fs, FileHandle *fh, char* data, int dataLength){
             //spazio esaurito
             if(freeBlock == -1){
                 //errore non c'è un freeBlock
-                errno = ENOSPC;
 
                 return -1;
             }
@@ -419,7 +418,7 @@ int seek(FileSystem *fs, FileHandle *fh, int offset, int whence){
 	{
 		fh->currentBlock = fs->table[fh->currentBlock];
 	}
-    printf("Posizione attuale: %d\n", fh->currentPosition);
+    // printf("Posizione attuale: %d\n", fh->currentPosition);
 	return 0;
 }
 
@@ -435,6 +434,7 @@ int createDir(FileSystem *fs, char *dirName){
     //cerco se già esiste una dir nella currentDir
     for (int i = 0; i < fs->entryCount; i++)
     {
+        
         if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, dirName) == 0 && fs->entries[i].type == DIRECTORY_TYPE){
             return -1;
         }
@@ -450,6 +450,7 @@ int createDir(FileSystem *fs, char *dirName){
     dir->startBlock = FREE_BLOCK;
     dir->parentIndex = fs->currentDirIndex;
     dir->lastAccessTimeStamp = dir->creationTimeStamp;
+    
     
     return 0;
     
@@ -520,33 +521,38 @@ int changeDir(FileSystem *fs, char *dirName){
         return 0;
     }
 
-    for (int i = 0; i < fs->entryCount; i++)
-    {   
-        //cerco la directory nella directory corrente e sposto il currentDirIndex
-        if(strcmp(fs->entries[i].name, dirName) == 0 && fs->currentDirIndex == fs->entries[i].parentIndex && fs->entries[i].type == DIRECTORY_TYPE){
+    int j = 0;
+    for(int i = 0; j < fs->entryCount && i < fs->maxEntries; i++) {   
+        if(fs->entries[i].type == FREE_TYPE)
+            continue;
+        j++;
+
+        //cerco la directory nella directory corrente e sposto currentDirIndex
+            if(strcmp(fs->entries[i].name, dirName) == 0 && fs->currentDirIndex == fs->entries[i].parentIndex && fs->entries[i].type == DIRECTORY_TYPE) {
             fs->currentDirIndex = i;
             fs->entries[i].lastAccessTimeStamp = time(NULL);
             return 0;
         }
     }
-    
-
     return -1;
 }
 
 void listDir(FileSystem *fs){
     int j = 0;
+    printf("------------------------------------------  Directory corrente: %s\n", fs->entries[fs->currentDirIndex].name);
+    fs->entries[fs->currentDirIndex].lastAccessTimeStamp = time(NULL);
     for (int i = 0; j < fs->entryCount && i < fs->maxEntries; i++)
     {
         if (fs->entries[i].type == FREE_TYPE)
 			continue;
 
         if(fs->currentDirIndex == fs->entries[i].parentIndex){
+            
             if(fs->entries[i].type == DIRECTORY_TYPE){
-                printf("DIR: %s\n", fs->entries[i].name);
+                printf("--- DIR: %s --- \nCreazione: %sUltimoAccesso: %s\n", fs->entries[i].name, ctime(&fs->entries[i].creationTimeStamp), ctime(&fs->entries[i].lastAccessTimeStamp));
             }else if (fs->entries[i].type == FILE_TYPE)
             {
-                printf("FILE: %s\n", fs->entries[i].name);
+                printf("--- FILE: %s ---\nCreazione: %sUltimoAccesso: %s\n", fs->entries[i].name, ctime(&fs->entries[i].creationTimeStamp), ctime(&fs->entries[i].lastAccessTimeStamp));
             }
             
         }

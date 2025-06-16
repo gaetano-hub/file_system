@@ -1,188 +1,176 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <string.h>
 
 #include "../include/file_system.h"
 
 #define FILESYSTEM_SIZE 10 * 1024 * 1024 // 10MB
 
+int test_ok = 0;
+int test_failed = 0;
+
+void test(int condition, char *message){
+    if(condition){
+        test_ok++;
+        printf("[TEST SUPERATO]: %s\n", message);
+    }else{
+        test_failed++;
+        printf("----------------TEST FALLITO %s\n", message);
+    }
+
+    
+}
+
+void inizioTest(FileSystem *fs){
+
+    //=============================== Inizio test sui file(compreso write, seek, read)...==============================
+    printf("\t\tInizio test sui file(compreso write, seek, read)...\n\n");
+
+    test(createFile(fs, "file.txt") == 0, "Creato file.txt");
+    test(createFile(fs, "file.txt") == -1, "File.txt non creato");
+    test(createFile(fs, "file2.txt") == 0, "Creato file.txt");
+    test(createFile(fs, "file3.txt") == 0, "Creato file.txt");
+    
+    FileHandle *fh = open(fs, "file.txt");
+    FileHandle *fh2 = open(fs, "file2.txt");
+    FileHandle *fh3 = open(fs, "file3.txt");
+    test(fh != NULL, "FileHandle open() riuscita");
+    test(fh2 != NULL, "FileHandle open() riuscita");
+    test(fh3 != NULL, "FileHandle open() riuscita");
+    if(fh){
+        test(write(fs, fh, "file", 4) == 4, "Scrittura di 'file' avvenuta");
+        test(seek(fs, fh, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
+        test(strcmp(read(fs, fh, 5), "file") == 0, "Lettura di 'file'");
+    }
+
+    if(fh2){
+        test(write(fs, fh2, "file2", 4) == 4, "Scrittura di 'file2' avvenuta");
+        test(seek(fs, fh2, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
+        test(seek(fs, fh2, 1, SEEK_CUR) == 0, "Seek current riuscita");
+        test(strcmp(read(fs, fh2, 4), "ile") == 0, "Lettura di 'ile'");
+    }
+
+    if(fh3){
+        test(write(fs, fh3, "file3", 4) == 4, "Scrittura di 'file3' avvenuta");
+        test(seek(fs, fh3, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
+        test(seek(fs, fh3, -2, SEEK_END) == 0, "Seek ending riuscita");
+        test(strcmp(read(fs, fh3, 2), "le") == 0, "Lettura di 'e'");
+    }
+
+    test(eraseFile(fs, "file.txt") == 0, "Eliminazione file.txt");
+    test(eraseFile(fs, "file2.txt") == 0, "Eliminazione file2.txt");
+    test(eraseFile(fs, "file3.txt") == 0, "Eliminazione file3.txt");
+
+    close(fh);
+    close(fh2);
+    close(fh3);
+
+    //========================= Inizio test sulle directory...=======================
+    printf("\n\t\tInizio test sulle directory...\n\n");
+    
+
+    test(createDir(fs, "dir1") == 0, "Creazione dir1");
+    test(createFile(fs, "file1.txt") == 0, "Creazione file1.txt");
+    test(createFile(fs, "file2.txt") == 0, "Creazione file2.txt");
+
+    printf("\n\n___Eseguo listDir()...\n\n");
+    listDir(fs);
+    printf("\n\n");
+
+    test(changeDir(fs, "dir1") == 0, "cd dir1");
+    test(createFile(fs, "file2.txt") == 0, "Creazione file2.txt");
+    test(createFile(fs, "file3.txt") == 0, "Creazione file3.txt");
+
+
+    test(createDir(fs, "dir2") == 0, "Creazione dir2");
+
+    printf("\n\n___Eseguo listDir()...\n\n");
+    listDir(fs);
+    printf("\n\n");
+
+    test(changeDir(fs, "dir2") == 0, "cd dir2");
+
+    test(createFile(fs, "file4.txt") == 0, "Creazione file4.txt");
+
+    test(createDir(fs, "dir3") == 0, "Creazione dir3");
+    
+
+    test(eraseFile(fs, "file4.txt") == 0, "Eliminazione file4.txt");
+
+    
+
+    printf("\n\n___Eseguo listDir()...\n\n");
+    listDir(fs);
+    printf("\n\n");
+
+    test(changeDir(fs, "dir3") == 0, "cd dir3");
+
+    test(eraseFile(fs, "file.txt") == -1, "Errore eliminazione file.txt");
+
+    test(eraseFile(fs, "file6.txt") == -1, "Errore eliminazione file6.txt");
+
+    test(eraseDir(fs, "dir6") == -1, "Errore eliminazione dir6");
+
+    test(changeDir(fs, "..") == 0, "cd ..");
+    test(changeDir(fs, "..") == 0, "cd ..");
+
+    printf("\n\n___Eseguo listDir()...\n\n");
+    listDir(fs);
+    printf("\n\n");
+
+    test(changeDir(fs, "..") == 0, "cd ..");
+
+    test(eraseFile(fs, "file.txt") == -1, "Errore eliminazione file.txt");
+
+    printf("\n\n___Eseguo listDir()...\n\n");
+    listDir(fs);
+    printf("\n\n");
+
+    test(changeDir(fs, "..") == 0, "cd ..");
+    
+    test(eraseDir(fs, "dir1") == 0, "Eliminazione dir1");
+    
+    test(eraseFile(fs, "file2.txt") == 0, "Eliminazione file2.txt");
+
+    printf("\n\n___Eseguo listDir()...\n\n");
+    listDir(fs);
+    printf("\n\n");
+
+    
+}
+
+
 
 int main(int argc, char const *argv[])
 {
     void *memory = mmap(NULL, FILESYSTEM_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
     if(memory == MAP_FAILED){
         perror("mmap failed"); 
         return -1;
     }
-
-    printf("memoria allocata\n");
+    printf("\t\t\t\t========= MEMORIA ALLOCATA =========\n");
 
     FileSystem *fs = initFileSystem(memory, FILESYSTEM_SIZE);
-
     if(!fs){
         perror("init failed");
         return -1;
     }
-    
-    if(createFile(fs, "file.txt") == 0){
-        printf("creato file.txt\n");
-    }
 
-    FileHandle *fh = open(fs, "file.txt");
-    if(!fh){ 
-        printf("errore open()\n");
-        return -1;
-    }
+    printf("\t\t\t\t    FileSystem inizializzato...\n");
+    printf("\t\t\t\t    Inizio fase di testing...\n\n");
 
-    if(write(fs, fh, "file", 4) == 4){
-        printf("scrittura avvenuta\n");
-    }else{
-        printf("errore\n");
-    }
-
-    close(fh);
-
-    FileHandle *fh1 = open(fs, "file.txt");
-
-
-    int pos = seek(fs, fh1, 2, SEEK_BEGIN);
-    if(pos == 0){
-        printf("seek ok\n");
-    }
-
-    
-
-    
-    char *string = read(fs, fh, 5);
-
-    if(string != NULL){
-        printf("lettura avvenuta\n");
-        printf("stringa: %s\n", string);
-    }else{
-        printf("errore lettura\n");
-    }
-
-    free(string);
-    close(fh1);
-
-
-
-    
-
-    if(eraseFile(fs, "file.txt") == 0){
-        printf("eliminato file.txt\n");
-    }
-
-    if(createDir(fs, "dir1") == 0){
-        // printf("creazione dir1 riuscita\n");
-    }else{
-        // printf("errore creazione dir1\n");
-    }
-
-    if (createFile(fs, "file2.txt") == 0)
-    {
-        // printf("file2 creato\n");
-    }else{
-        // printf("errore creazione file2\n");
-    }
-
-    if (changeDir(fs, "dir1") == 0)
-    {
-        printf("change riuscito root/dir1\n");
-    }
-
-    if(createFile(fs, "file66.txt") == 0){
-        // printf("creato file.txt\n");
-    }
-
-    if(createFile(fs, "file67.txt") == 0){
-        // printf("creato file.txt\n");
-    }
-
-    if(createDir(fs, "dir2") == 0){
-        // printf("creazione dir2 riuscita\n");
-    }else{
-        // printf("errore creazione dir1\n");
-    }
-
-    if (changeDir(fs, "dir2") == 0)
-    {
-        printf("change riuscito root/dir2\n");
-    }
-
-    if(createDir(fs, "dir2") == 0){
-        // printf("creazione dir2 riuscita\n");
-    }else{
-        // printf("errore creazione dir1\n");
-    }
-
-    if(createFile(fs, "file.txt") == 0){
-        // printf("creato file.txt\n");
-    }
-
-    if (changeDir(fs, "dir2") == 0)
-    {
-        printf("change riuscito root/dir2/dir2\n");
-    }
-
-    if(createFile(fs, "file.txt") == 0){
-        // printf("creato file.txt\n");
-    }
-
-    if(createFile(fs, "file6.txt") == 0){
-        // printf("creato file.txt\n");
-    }
-
-    if (changeDir(fs, "..") == 0)
-    {
-        printf("change riuscito root/dir2\n");
-    }
-
-    listDir(fs);
-
-    if (changeDir(fs, "..") == 0)
-    {
-        printf("change riuscito root/dir1\n");
-    }
-
-    if(createFile(fs, "file.txt") == 0){
-        // printf("creato file.txt\n");
-    }
-
-    listDir(fs);
-
-    if (changeDir(fs, "..") == 0)
-    {
-        printf("change riuscito  root/\n");
-    }
-
-    
-
-    
-
-    if(eraseDir(fs, "dir1") == 0){
-        printf("eliminato dir1\n");
-    }
-    
-    if(eraseFile(fs, "file2.txt") == 0){
-        printf("eliminato file2.txt\n");
-    }
-
-    // if(createDir(fs, "dir1") == 0){
-    //     printf("creazione dir1 riuscita\n");
-    // }else{
-    //     printf("errore creazione dir1\n");
-    // }
+    inizioTest(fs);
 
     // stampaFS(fs);
 
-
+    printf("\n\ntest_ok: %d\n", test_ok);
+    printf("test_failed: %d\n", test_failed);
     if(munmap(memory, FILESYSTEM_SIZE) == -1){
         return -1;
     }
 
-    printf("memoria deallocata\n");
+    printf("\t\t\t\t========= MEMORIA DEALLOCATA =========\n");
 
     return 0;
 }
