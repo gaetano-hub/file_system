@@ -4,7 +4,7 @@
 
 #include "../include/file_system.h"
 
-#define FILESYSTEM_SIZE 1.5 * 1024 * 1024 * 1024 // 1.5 GB
+#define FILESYSTEM_SIZE 10 * 1024 * 1024 // 10MB
 
 
 int main(int argc, char const *argv[])
@@ -71,6 +71,12 @@ int main(int argc, char const *argv[])
 
     if(eraseFile(fs, "file.txt") == 0){
         printf("eliminato file.txt\n");
+    }
+
+    if(createDir(fs, "dir1") == 0){
+        printf("creazione dir1 riuscita\n");
+    }else{
+        printf("errore creazione dir1\n");
     }
 
 

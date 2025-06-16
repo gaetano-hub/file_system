@@ -406,3 +406,35 @@ int seek(FileSystem *fs, FileHandle *fh, int offset, int whence){
     printf("Posizione attuale: %d\n", fh->currentPosition);
 	return 0;
 }
+
+int createDir(FileSystem *fs, char *dirName){
+    if(!isValidFilename(dirName)){
+        return -1;
+    }
+
+    if(fs->entryCount >= fs->maxEntries){
+        return -1;
+    }
+
+    //cerco se già esiste una dir nella currentDir
+    for (int i = 0; i < fs->entryCount; i++)
+    {
+        if(fs->entries[i].parentIndex == fs->currentDirIndex && strcmp(fs->entries[i].name, dirName) == 0 && fs->entries[i].type == DIRECTORY_TYPE){
+            return -1;
+        }
+    }
+
+    //creo la nuova directory
+    DirectoryEntry *dir = &(fs->entries[fs->entryCount++]);
+    strncpy(dir->name, dirName, MAX_FILENAME_LENGTH - 1);
+    dir->name[MAX_FILENAME_LENGTH - 1] = '\0';
+    dir->type = DIRECTORY_TYPE;
+    dir->creationTimeStamp = time(NULL);
+    dir->size = 0;
+    dir->startBlock = FREE_BLOCK;
+    dir->parentIndex = fs->currentDirIndex;
+    dir->lastAccessTimeStamp = dir->creationTimeStamp;
+    
+    return 0;
+    
+}

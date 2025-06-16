@@ -27,3 +27,5 @@ int write(FileSystem *fs, FileHandle *fh, char* data, int dataLength);
 char *read(FileSystem *fs, FileHandle *fh, int maxToRead);
 
 int seek(FileSystem *fs, FileHandle *fh, int offset, int whence);
+
+int createDir(FileSystem *fs, char *dirName);
