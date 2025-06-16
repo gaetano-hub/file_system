@@ -75,87 +75,91 @@ int main(int argc, char const *argv[])
     }
 
     if(createDir(fs, "dir1") == 0){
-        printf("creazione dir1 riuscita\n");
+        // printf("creazione dir1 riuscita\n");
     }else{
-        printf("errore creazione dir1\n");
+        // printf("errore creazione dir1\n");
     }
 
     if (createFile(fs, "file2.txt") == 0)
     {
-        printf("file2 creato\n");
+        // printf("file2 creato\n");
     }else{
-        printf("errore creazione file2\n");
+        // printf("errore creazione file2\n");
     }
 
     if (changeDir(fs, "dir1") == 0)
     {
-        printf("change riuscito\n");
+        printf("change riuscito root/dir1\n");
     }
 
     if(createFile(fs, "file66.txt") == 0){
-        printf("creato file.txt\n");
+        // printf("creato file.txt\n");
     }
 
     if(createFile(fs, "file67.txt") == 0){
-        printf("creato file.txt\n");
+        // printf("creato file.txt\n");
     }
 
     if(createDir(fs, "dir2") == 0){
-        printf("creazione dir2 riuscita\n");
+        // printf("creazione dir2 riuscita\n");
     }else{
-        printf("errore creazione dir1\n");
+        // printf("errore creazione dir1\n");
     }
 
     if (changeDir(fs, "dir2") == 0)
     {
-        printf("change riuscito\n");
+        printf("change riuscito root/dir2\n");
     }
 
     if(createDir(fs, "dir2") == 0){
-        printf("creazione dir2 riuscita\n");
+        // printf("creazione dir2 riuscita\n");
     }else{
-        printf("errore creazione dir1\n");
+        // printf("errore creazione dir1\n");
     }
 
     if(createFile(fs, "file.txt") == 0){
-        printf("creato file.txt\n");
+        // printf("creato file.txt\n");
     }
 
     if (changeDir(fs, "dir2") == 0)
     {
-        printf("change riuscito\n");
+        printf("change riuscito root/dir2/dir2\n");
     }
 
     if(createFile(fs, "file.txt") == 0){
-        printf("creato file.txt\n");
+        // printf("creato file.txt\n");
     }
 
     if(createFile(fs, "file6.txt") == 0){
-        printf("creato file.txt\n");
+        // printf("creato file.txt\n");
     }
 
     if (changeDir(fs, "..") == 0)
     {
-        printf("change riuscito\n");
+        printf("change riuscito root/dir2\n");
     }
+
+    listDir(fs);
 
     if (changeDir(fs, "..") == 0)
     {
-        printf("change riuscito\n");
+        printf("change riuscito root/dir1\n");
     }
 
     if(createFile(fs, "file.txt") == 0){
-        printf("creato file.txt\n");
+        // printf("creato file.txt\n");
     }
+
+    listDir(fs);
 
     if (changeDir(fs, "..") == 0)
     {
-        printf("change riuscito\n");
+        printf("change riuscito  root/\n");
     }
 
     
 
-    // stampaFS(fs);
+    
 
     if(eraseDir(fs, "dir1") == 0){
         printf("eliminato dir1\n");
@@ -171,7 +175,7 @@ int main(int argc, char const *argv[])
     //     printf("errore creazione dir1\n");
     // }
 
-    stampaFS(fs);
+    // stampaFS(fs);
 
 
     if(munmap(memory, FILESYSTEM_SIZE) == -1){

@@ -36,3 +36,5 @@ int eraseDir(FileSystem *fs, char *dirName);
 
 int changeDir(FileSystem *fs, char *dirName);
 
+void listDir(FileSystem *fs);
+

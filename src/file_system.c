@@ -499,7 +499,7 @@ int eraseDir(FileSystem *fs, char *dirName) {
             // printf("ELIMINAZIONE DIRECTORY: %s %u entryCount prima: %d\n", fs->entries[dirIndex].name, fs->entries[dirIndex].type, fs->entryCount);
             fs->entries[dirIndex].type = FREE_TYPE;
             fs->entryCount--;
-            printf("entryCount dopo: %d\n", fs->entryCount);
+            // printf("entryCount dopo: %d\n", fs->entryCount);
 
             return 0;
         }
@@ -532,4 +532,26 @@ int changeDir(FileSystem *fs, char *dirName){
     
 
     return -1;
+}
+
+void listDir(FileSystem *fs){
+    int j = 0;
+    for (int i = 0; j < fs->entryCount && i < fs->maxEntries; i++)
+    {
+        if (fs->entries[i].type == FREE_TYPE)
+			continue;
+
+        if(fs->currentDirIndex == fs->entries[i].parentIndex){
+            if(fs->entries[i].type == DIRECTORY_TYPE){
+                printf("DIR: %s\n", fs->entries[i].name);
+            }else if (fs->entries[i].type == FILE_TYPE)
+            {
+                printf("FILE: %s\n", fs->entries[i].name);
+            }
+            
+        }
+
+        j++;
+    }
+    
 }
