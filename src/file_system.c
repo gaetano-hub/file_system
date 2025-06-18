@@ -492,9 +492,7 @@ int eraseDir(FileSystem *fs, char *dirName)
 
             int dirIndex = i;
 
-            // effettuo due volte il controllo perché con un solo ciclo qualche file/dir potrebbe sfuggire visto che si modifica fs->entries e fs->entryCount
-            for (int pass = 0; pass < 2; pass++)
-            {
+            //cerco i figli della directory da eliminare
                 for (int k = 0; k < fs->maxEntries; k++)
                 {
                     if (fs->entries[k].type == FREE_TYPE)
@@ -502,27 +500,24 @@ int eraseDir(FileSystem *fs, char *dirName)
 
                     if (fs->entries[k].parentIndex == dirIndex)
                     {
-                        // c'è bisogno di cambiare fs->currentDirIndex perché sennò non è possibile eliminare(per es. visto che eraseFile l'ho strutturata che
-                        //  che bisogna stare nel parentIndex per eliminare)
+                        // c'è bisogno di cambiare fs->currentDirIndex perché sennò non è possibile eliminare(per es. visto che eraseFile l'ho strutturata
+                        //  che bisogna stare nel currentDirIndex per eliminare)
                         int temp = fs->currentDirIndex;
                         fs->currentDirIndex = dirIndex;
 
                         // uso chiamate ricorsive
                         if (fs->entries[k].type == DIRECTORY_TYPE)
                         {
-                            
                             eraseDir(fs, fs->entries[k].name);
                         }
                         else if (fs->entries[k].type == FILE_TYPE)
                         {
-                            
                             eraseFile(fs, fs->entries[k].name);
                         }
 
                         fs->currentDirIndex = temp;
                     }
                 }
-            }
 
             // elimino
             fs->entries[dirIndex].type = FREE_TYPE;
