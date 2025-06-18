@@ -12,8 +12,6 @@ typedef struct DirectoryEntry DirectoryEntry;
 typedef struct FileSystem FileSystem;
 typedef struct FileHandle FileHandle;
 
-void stampaFS(FileSystem *fs);
-
 FileSystem *initFileSystem(void* memory, size_t size);
 
 int createFile(FileSystem *fs, char *fileName);

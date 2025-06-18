@@ -22,7 +22,15 @@ void test(int condition, char *message){
     
 }
 
-void inizioTest(FileSystem *fs){
+void inizioTest(void* memory){
+
+    FileSystem *fs = initFileSystem(memory, FILESYSTEM_SIZE);
+    if(!fs){
+        perror("init failed");
+        return;
+    }
+
+    printf("\t\t\t\t    FileSystem inizializzato...\n");
 
     //=============================== Inizio test sui file(compreso write, seek, read)...==============================
     printf("\t\tInizio test sui file(compreso write, seek, read)...\n\n");
@@ -121,11 +129,25 @@ void inizioTest(FileSystem *fs){
 
     test(changeDir(fs, "..") == 0, "cd ..");
 
-    test(eraseFile(fs, "file.txt") == -1, "Errore eliminazione file.txt");
+    test(createFile(fs, "file10.txt") == 0, "Creato file10.txt");
+
+    FileHandle *fh4 = open(fs, "file10.txt");
+    test(fh4 != NULL, "FileHandle open() riuscita");
+    if(fh4){
+        test(write(fs, fh4, "file", 4) == 4, "Scrittura di 'file' avvenuta");
+        test(seek(fs, fh4, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
+        test(strcmp(read(fs, fh4, 5), "file") == 0, "Lettura di 'file'");
+    }
+
+    close(fh4);
 
     printf("\n\n___Eseguo listDir()...\n\n");
     listDir(fs);
     printf("\n\n");
+
+    test(eraseFile(fs, "file.txt") == -1, "Errore eliminazione file.txt");
+
+    test(eraseFile(fs, "file10.txt") == 0, "Errore eliminazione file10.txt");
 
     test(changeDir(fs, "..") == 0, "cd ..");
     
@@ -137,7 +159,7 @@ void inizioTest(FileSystem *fs){
     listDir(fs);
     printf("\n\n");
 
-    
+    test(eraseFile(fs, "file1.txt") == 0, "Eliminazione file1.txt");
 }
 
 
@@ -150,22 +172,16 @@ int main(int argc, char const *argv[])
         return -1;
     }
     printf("\t\t\t\t========= MEMORIA ALLOCATA =========\n");
-
-    FileSystem *fs = initFileSystem(memory, FILESYSTEM_SIZE);
-    if(!fs){
-        perror("init failed");
-        return -1;
-    }
-
-    printf("\t\t\t\t    FileSystem inizializzato...\n");
+    
     printf("\t\t\t\t    Inizio fase di testing...\n\n");
 
-    inizioTest(fs);
-
-    // stampaFS(fs);
+    inizioTest(memory);
 
     printf("\n\ntest_ok: %d\n", test_ok);
     printf("test_failed: %d\n", test_failed);
+
+    printf("\t\t\t\t    Fine fase di testing...\n\n");
+
     if(munmap(memory, FILESYSTEM_SIZE) == -1){
         return -1;
     }
