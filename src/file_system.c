@@ -9,41 +9,7 @@
 #define FREE_BLOCK -1
 #define END_OF_CHAIN -2
 
-typedef enum
-{
-    FREE_TYPE,
-    FILE_TYPE,
-    DIRECTORY_TYPE
-} EntryType;
 
-struct DirectoryEntry
-{
-    char name[MAX_FILENAME_LENGTH];
-    EntryType type;
-    int startBlock;
-    int size;
-    int parentIndex;
-    time_t creationTimeStamp;
-    time_t lastAccessTimeStamp;
-};
-
-struct FileSystem
-{
-    int *table;
-    DirectoryEntry *entries;
-    char (*data)[BLOCK_SIZE];
-    int entryCount;
-    int maxEntries;
-    int TotalBlocks;
-    int currentDirIndex;
-};
-
-struct FileHandle
-{
-    int fileIndex;
-    int currentBlock;
-    int currentPosition;
-};
 
 FileSystem *initFileSystem(void *memory, size_t size)
 {
@@ -173,7 +139,7 @@ int eraseFile(FileSystem *fs, char *fileName)
     return -1;
 }
 
-FileHandle *open(FileSystem *fs, char *fileName)
+FileHandle *openFH(FileSystem *fs, char *fileName)
 {
 
     // alloco la memoria per il descrittore che mi servirà per scrivere/leggere un file
@@ -213,12 +179,12 @@ FileHandle *open(FileSystem *fs, char *fileName)
     return NULL;
 }
 
-void close(FileHandle *fh)
+void closeFH(FileHandle *fh)
 {
     free(fh);
 }
 
-int write(FileSystem *fs, FileHandle *fh, char *data, int dataLength)
+int writeFH(FileSystem *fs, FileHandle *fh, char *data, int dataLength)
 {
 
     int bytesWritten = 0;
@@ -319,7 +285,7 @@ int write(FileSystem *fs, FileHandle *fh, char *data, int dataLength)
     return bytesWritten;
 }
 
-char *read(FileSystem *fs, FileHandle *fh, int maxToBeRead)
+char *readFH(FileSystem *fs, FileHandle *fh, int maxToBeRead)
 {
 
     DirectoryEntry *file = &fs->entries[fh->fileIndex];
@@ -336,6 +302,7 @@ char *read(FileSystem *fs, FileHandle *fh, int maxToBeRead)
 
     if (maxReadable <= 0)
     {
+        
         char *buffer = (char *)malloc(1);
         buffer[0] = '\0';
 
@@ -345,13 +312,14 @@ char *read(FileSystem *fs, FileHandle *fh, int maxToBeRead)
     // se i bytes da leggere sono di più di quelli disponibili allora limita la lettura
     if (maxToBeRead > maxReadable)
     {
+        
         maxToBeRead = maxReadable;
     }
 
     // continuo finché non leggo tutto oppure fin quando non trovo un freeBlock
     while (bytesRead < maxToBeRead && fh->currentBlock != FREE_BLOCK)
     {
-
+        
         // calcolo l' offset nel blocco e i byte che si possono leggere
         int blockOffset = fh->currentPosition % BLOCK_SIZE;
         int bytesToRead = BLOCK_SIZE - blockOffset;

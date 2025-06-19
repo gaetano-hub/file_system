@@ -40,39 +40,39 @@ void inizioTest(void* memory){
     test(createFile(fs, "file2.txt") == 0, "Creato file.txt");
     test(createFile(fs, "file3.txt") == 0, "Creato file.txt");
     
-    FileHandle *fh = open(fs, "file.txt");
-    FileHandle *fh2 = open(fs, "file2.txt");
-    FileHandle *fh3 = open(fs, "file3.txt");
-    test(fh != NULL, "FileHandle open() riuscita");
-    test(fh2 != NULL, "FileHandle open() riuscita");
-    test(fh3 != NULL, "FileHandle open() riuscita");
+    FileHandle *fh = openFH(fs, "file.txt");
+    FileHandle *fh2 = openFH(fs, "file2.txt");
+    FileHandle *fh3 = openFH(fs, "file3.txt");
+    test(fh != NULL, "FileHandle openFH() riuscita");
+    test(fh2 != NULL, "FileHandle openFH() riuscita");
+    test(fh3 != NULL, "FileHandle openFH() riuscita");
     if(fh){
-        test(write(fs, fh, "file", 4) == 4, "Scrittura di 'file' avvenuta");
+        test(writeFH(fs, fh, "file", 4) == 4, "Scrittura di 'file' avvenuta");
         test(seek(fs, fh, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
-        test(strcmp(read(fs, fh, 5), "file") == 0, "Lettura di 'file'");
+        test(strcmp(readFH(fs, fh, 5), "file") == 0, "Lettura di 'file'");
     }
 
     if(fh2){
-        test(write(fs, fh2, "file2", 4) == 4, "Scrittura di 'file2' avvenuta");
+        test(writeFH(fs, fh2, "file2", 4) == 4, "Scrittura di 'file2' avvenuta");
         test(seek(fs, fh2, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
         test(seek(fs, fh2, 1, SEEK_CUR) == 0, "Seek current riuscita");
-        test(strcmp(read(fs, fh2, 4), "ile") == 0, "Lettura di 'ile'");
+        test(strcmp(readFH(fs, fh2, 4), "ile") == 0, "Lettura di 'ile'");
     }
 
     if(fh3){
-        test(write(fs, fh3, "file3", 4) == 4, "Scrittura di 'file3' avvenuta");
+        test(writeFH(fs, fh3, "file3", 4) == 4, "Scrittura di 'file3' avvenuta");
         test(seek(fs, fh3, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
         test(seek(fs, fh3, -2, SEEK_END) == 0, "Seek ending riuscita");
-        test(strcmp(read(fs, fh3, 2), "le") == 0, "Lettura di 'e'");
+        test(strcmp(readFH(fs, fh3, 2), "le") == 0, "Lettura di 'e'");
     }
 
     test(eraseFile(fs, "file.txt") == 0, "Eliminazione file.txt");
     test(eraseFile(fs, "file2.txt") == 0, "Eliminazione file2.txt");
     test(eraseFile(fs, "file3.txt") == 0, "Eliminazione file3.txt");
 
-    close(fh);
-    close(fh2);
-    close(fh3);
+    closeFH(fh);
+    closeFH(fh2);
+    closeFH(fh3);
 
     //========================= Inizio test sulle directory...=======================
     printf("\n\t\tInizio test sulle directory...\n\n");
@@ -131,15 +131,15 @@ void inizioTest(void* memory){
 
     test(createFile(fs, "file10.txt") == 0, "Creato file10.txt");
 
-    FileHandle *fh4 = open(fs, "file10.txt");
-    test(fh4 != NULL, "FileHandle open() riuscita");
+    FileHandle *fh4 = openFH(fs, "file10.txt");
+    test(fh4 != NULL, "FileHandle openFH() riuscita");
     if(fh4){
-        test(write(fs, fh4, "file", 4) == 4, "Scrittura di 'file' avvenuta");
+        test(writeFH(fs, fh4, "file", 4) == 4, "Scrittura di 'file' avvenuta");
         test(seek(fs, fh4, 0, SEEK_BEGIN) == 0, "Seek begin riuscita");
-        test(strcmp(read(fs, fh4, 5), "file") == 0, "Lettura di 'file'");
+        test(strcmp(readFH(fs, fh4, 5), "file") == 0, "Lettura di 'file'");
     }
 
-    close(fh4);
+    closeFH(fh4);
 
     printf("\n\n___Eseguo listDir()...\n\n");
     listDir(fs);
